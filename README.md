@@ -3,11 +3,16 @@
 ### Airline
 ##### Variables:
 **\_admin ::** Address of the Airline contract creator (Airline Admin).
+
 **\_flights ::** List of created flight names.
+
 **\_flight\_info ::** Mapping of flight name to flight details. Flight details is a struct containing estimated\_departure, actual\_departure, no\_of\_seats, seat\_price and status.
+
 **\_tickets ::** Mapping of created ticket address to ticket details needed during cancellation. Ticket details is a struct containing flight\_name and no\_of\_seats.
+
 ##### Modifiers:
 **is\_admin ::** Validates whether caller is the Airline admin.
+
 **valid\_booking\_inputs ::** Validates inputs provided during ticket booking.
 * Customer Address - Should not be airline admin
 * Flight Name - Should be valid
@@ -15,6 +20,7 @@
 * Number of Seats - Should be available for booking in the flight
 
 **valid\_ticket ::** Validates whether ticket address provided for cancellation is valid (created before).
+
 ##### Methods:
 **add\_flight ::** 
 * Can be called by Admin only.
