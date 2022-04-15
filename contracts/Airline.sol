@@ -21,19 +21,18 @@ contract Airline {
         uint no_of_seats;
     }
 
-    mapping(address => TicketData) internal _tickets;
-
-    address private admin;
+    address private _admin;
     string[] internal _flights;
     mapping(string => FlightData) internal _flight_info;
+    mapping(address => TicketData) internal _tickets;
 
     modifier is_admin() {
-        require(msg.sender == admin, "Action not permitted for non-Admin users.");
+        require(msg.sender == _admin, "Action not permitted for non-Admin users.");
         _;
     }
 
     modifier valid_booking_inputs(address _addr, string memory _flight_name, uint _no_of_seats) {
-        require(_addr != admin, "Seat booking not permitted for Admin users.");
+        require(_addr != _admin, "Seat booking not permitted for Admin users.");
         require(_flight_info[_flight_name].estimated_departure != 0, "Invalid flight name.");
         require(_no_of_seats > 0, "Can not book 0 seats.");
         require(_flight_info[_flight_name].no_of_seats >= _no_of_seats,"Specified number of seats not available.");
@@ -46,7 +45,7 @@ contract Airline {
     }
 
     constructor() {
-        admin = msg.sender;
+        _admin = msg.sender;
     }
 
     function add_flight(string memory _flight_name, uint _estimated_departure, uint _no_of_seats, uint _seat_price) public is_admin {
@@ -107,7 +106,7 @@ contract Airline {
         return ticket_address;
     }
 
-    function cancel_booking(address _ticket) external valid_ticket(_ticket) {
+    function cancel_ticket(address _ticket) external valid_ticket(_ticket) {
         // Call cancel method for existing Ticket contract (using address)
         (bool _res,) = _ticket.call(abi.encodeWithSignature("cancel_ticket()"));
 
