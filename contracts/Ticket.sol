@@ -14,9 +14,13 @@ contract Ticket {
     uint public _no_of_seats;
     uint public _seat_price;
     uint public _total_amount_payable;
-    uint public _amount_paid;
     uint8 _flight_delay_penalty_percentage = 30;
     uint8 _ticket_cancellation_penalty_percentage = 40;
+
+    modifier validate_payment() {
+        require(_status == TicketStatus.BOOKED, "Ticket has already been paid.");
+        _;
+    }
 
     modifier validate_cancellation() {
         require(_status != TicketStatus.BOOKED, "Ticket has not been paid for yet.");
@@ -25,7 +29,8 @@ contract Ticket {
         _;
     }
 
-    modifier validate_claim(FlightStatus flight_status) {
+    modifier validate_claim(uint8 _flight_status) {
+        FlightStatus flight_status = FlightStatus(_flight_status);
         require(_status != TicketStatus.BOOKED, "Ticket has not been paid for yet.");
         require(_status != TicketStatus.CLAIMED, "Ticket has already been claimed.");
         require(_status != TicketStatus.CANCELLED, "Ticket has been cancelled, and can't be claimed now.");
@@ -44,22 +49,20 @@ contract Ticket {
         _seat_price = seat_price;
         _status = TicketStatus.BOOKED;
         _total_amount_payable = no_of_seats * _seat_price;
-        _amount_paid = 0;
     }
 
-    function pay() public payable {
-        _amount_paid = msg.value;
+    function pay() public payable validate_payment {
         _status = TicketStatus.PAID;
     }
 
-    function cancel() internal validate_cancellation {
+    function cancellation() public payable validate_cancellation {
         uint _airline_amount = 0;
         uint _customer_amount = 0;
         bool _airline_transfer_success = true;
         bool _customer_transfer_success = true;
 
-        _airline_amount = (_amount_paid * _ticket_cancellation_penalty_percentage) / 100;
-        _customer_amount = _amount_paid - _airline_amount;
+        _airline_amount = (_total_amount_payable * _ticket_cancellation_penalty_percentage) / 100;
+        _customer_amount = _total_amount_payable - _airline_amount;
         (_airline_transfer_success, ) = _airline_address.call{value:_airline_amount}("");
         (_customer_transfer_success, ) = _customer_address.call{value:_customer_amount}("");
 
@@ -71,20 +74,20 @@ contract Ticket {
 
     }
 
-    function claim(FlightStatus flight_status) internal validate_claim(flight_status) {
+    function claim(uint8 flight_status) public payable validate_claim(flight_status) {
         uint _airline_amount = 0;
         uint _customer_amount = 0;
         bool _airline_transfer_success = true;
         bool _customer_transfer_success = true;
         
-        if (flight_status == FlightStatus.DELAYED) {
-            _airline_amount = (_amount_paid * _ticket_cancellation_penalty_percentage) / 100;
-            _customer_amount = _amount_paid - _airline_amount;
+        if (FlightStatus(flight_status) == FlightStatus.DELAYED) {
+            _customer_amount = (_total_amount_payable * _flight_delay_penalty_percentage) / 100;
+            _airline_amount  = _total_amount_payable - _customer_amount;
             (_airline_transfer_success, ) = _airline_address.call{value:_airline_amount}("");
             (_customer_transfer_success, ) = _customer_address.call{value:_customer_amount}("");
         }
         else {
-            _customer_amount = _amount_paid;
+            _customer_amount = _total_amount_payable;
             (_customer_transfer_success, ) = _customer_address.call{value:_customer_amount}("");
         }
 
