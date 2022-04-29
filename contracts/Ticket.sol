@@ -7,6 +7,7 @@ contract Ticket {
     enum TicketStatus {BOOKED, PAID, CANCELLED, CLAIMED}
     enum FlightStatus {SCHEDULED, ONTIME, DELAYED, CANCELLED}
 
+    address _parent_contract;
     string public _flight_name;
     address public _customer_address;
     address public _airline_address;
@@ -16,6 +17,11 @@ contract Ticket {
     uint public _total_amount_payable;
     uint8 _flight_delay_penalty_percentage = 30;
     uint8 _ticket_cancellation_penalty_percentage = 40;
+
+    modifier is_parent_contract() {
+        require(msg.sender == _parent_contract, "Request can not be made directly to contract. Please use parent contract instead.");
+        _;
+    }
 
     modifier validate_payment() {
         require(_status == TicketStatus.BOOKED, "Ticket has already been paid.");
@@ -42,6 +48,7 @@ contract Ticket {
     event TicketClaim(address indexed _ticket, address indexed _airline, bool _airline_transfer_success, uint _airline_amount, address indexed _customer, bool _customer_transfer_success, uint _customer_amount);
 
     constructor(string memory flight_name, address customer, address airline, uint no_of_seats, uint seat_price) {
+        _parent_contract = msg.sender;
         _flight_name = flight_name;
         _customer_address = customer;
         _airline_address = airline;
@@ -51,11 +58,11 @@ contract Ticket {
         _total_amount_payable = no_of_seats * _seat_price;
     }
 
-    function pay() public payable validate_payment {
+    function pay() public payable is_parent_contract validate_payment {
         _status = TicketStatus.PAID;
     }
 
-    function cancellation() public payable validate_cancellation {
+    function cancellation() public payable is_parent_contract validate_cancellation {
         uint _airline_amount = 0;
         uint _customer_amount = 0;
         bool _airline_transfer_success = true;
@@ -74,7 +81,7 @@ contract Ticket {
 
     }
 
-    function claim(uint8 flight_status) public payable validate_claim(flight_status) {
+    function claim(uint8 flight_status) public payable is_parent_contract validate_claim(flight_status) {
         uint _airline_amount = 0;
         uint _customer_amount = 0;
         bool _airline_transfer_success = true;
